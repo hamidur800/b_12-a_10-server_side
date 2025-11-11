@@ -5,7 +5,7 @@ import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 
 dotenv.config();
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -15,7 +15,7 @@ app.use(express.json());
 // mongodb+srv://hamidur800t_db_user:<db_password>@cluster0.tji7atp.mongodb.net/?appName=Cluster0
 // const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.mongodb.net/?retryWrites=true&w=majority`;
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://Atlas_User_db:rulpqZXfDhwBzwWm@cluster0.tji7atp.mongodb.net/?appName=Cluster0`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -46,10 +46,18 @@ async function run() {
     });
 
     //Add New Property
+    //Add New Property
     app.post("/properties", async (req, res) => {
-      const newProperty = { ...req.body, createdAt: new Date() };
-      const result = await propertyCollection.insertOne(newProperty);
-      res.send(result);
+      try {
+        const newProperty = { ...req.body, createdAt: new Date() };
+        const result = await propertyCollection.insertOne(newProperty);
+        res.send(result);
+      } catch (err) {
+        console.error("Error adding property:", err);
+        res
+          .status(500)
+          .send({ error: "Failed to add property", details: err.message });
+      }
     });
 
     //Update Property
