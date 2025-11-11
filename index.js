@@ -12,10 +12,8 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection
-// mongodb+srv://hamidur800t_db_user:<db_password>@cluster0.tji7atp.mongodb.net/?appName=Cluster0
-// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.mongodb.net/?retryWrites=true&w=majority`;
 
-const uri = `mongodb+srv://Atlas_User_db:rulpqZXfDhwBzwWm@cluster0.tji7atp.mongodb.net/?appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.tji7atp.mongodb.net/?appName=Cluster0`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -32,9 +30,29 @@ async function run() {
 
     //Get All Properties
     app.get("/properties", async (req, res) => {
-      const cursor = propertyCollection.find().sort({ createdAt: -1 });
-      const result = await cursor.toArray();
-      res.send(result);
+      try {
+        const { search, sort } = req.query;
+        const query = {};
+
+        if (search) {
+          query.title = { $regex: search, $options: "i" }; // name search
+        }
+
+        let sortOption = {};
+        if (sort === "price_asc") sortOption.price = 1;
+        else if (sort === "price_desc") sortOption.price = -1;
+        else if (sort === "date_asc") sortOption.createdAt = 1;
+        else if (sort === "date_desc") sortOption.createdAt = -1;
+        else sortOption = { createdAt: -1 };
+
+        const properties = await Property.find(query)
+          .populate("postedBy", "name email")
+          .sort(sortOption);
+
+        res.json(properties);
+      } catch (err) {
+        res.status(500).json({ message: "Server Error" });
+      }
     });
 
     //Get Single Property by ID
