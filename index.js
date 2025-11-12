@@ -27,6 +27,7 @@ async function run() {
   try {
     const database = client.db("homeNestDB");
     const propertyCollection = database.collection("properties");
+    const ratingCollection = db.collection("ratings");
 
     //Get All Properties
     // GET all properties with search & sort
@@ -69,12 +70,12 @@ async function run() {
     });
 
     //Get Single Property by ID
-    app.get("/properties/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await propertyCollection.findOne(query);
-      res.send(result);
-    });
+    // app.get("/properties/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const query = { _id: new ObjectId(id) };
+    //   const result = await propertyCollection.findOne(query);
+    //   res.send(result);
+    // });
 
     //Update Property
     app.put("/properties/:id", async (req, res) => {
@@ -110,6 +111,63 @@ async function run() {
         res.json({ message: "Deleted successfully" });
       } catch (err) {
         res.status(500).json({ message: "Server Error" });
+      }
+    });
+
+    // GET property by ID
+    app.get("/properties/:id", async (req, res) => {
+      const { id } = req.params;
+      try {
+        if (!ObjectId.isValid(id))
+          return res.status(400).send({ error: "Invalid ID" });
+        const property = await propertyCollection.findOne({
+          _id: new ObjectId(id),
+        });
+        if (!property)
+          return res.status(404).send({ error: "Property not found" });
+        res.send(property);
+      } catch (err) {
+        console.error("Error fetching property:", err);
+        res.status(500).send({ error: "Failed to fetch property" });
+      }
+    });
+
+    // GET ratings for a property
+    app.get("/ratings", async (req, res) => {
+      const { propertyId } = req.query;
+      try {
+        const reviews = await ratingCollection
+          .find({ propertyId })
+          .sort({ date: -1 }) // নতুন review আগে দেখাবে
+          .toArray();
+        res.send(reviews);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ error: "Failed to fetch reviews" });
+      }
+    });
+
+    // POST new review
+    app.post("/ratings", async (req, res) => {
+      try {
+        const newRating = { ...req.body, date: new Date().toISOString() };
+        const result = await ratingCollection.insertOne(newRating);
+        res.send(newRating);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ error: "Failed to add rating" });
+      }
+    });
+
+    // POST a new rating
+    app.post("/ratings", async (req, res) => {
+      try {
+        const newRating = { ...req.body, createdAt: new Date() };
+        const result = await ratingCollection.insertOne(newRating);
+        res.send(result);
+      } catch (err) {
+        console.error("Error adding rating:", err);
+        res.status(500).send({ error: "Failed to add rating" });
       }
     });
 
