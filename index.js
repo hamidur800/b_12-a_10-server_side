@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
+import { MongoClient, ServerApiVersion, ObjectId, Db } from "mongodb";
 
 dotenv.config();
 const app = express();
@@ -27,7 +27,7 @@ async function run() {
   try {
     const database = client.db("homeNestDB");
     const propertyCollection = database.collection("properties");
-    const ratingCollection = db.collection("ratings");
+    const ratingCollection = database.collection("ratings");
 
     //Get All Properties
     // GET all properties with search & sort
@@ -105,12 +105,33 @@ async function run() {
     // DELETE /properties/:id
     app.delete("/properties/:id", async (req, res) => {
       try {
-        const deleted = await Property.findByIdAndDelete(req.params.id);
-        if (!deleted)
-          return res.status(404).json({ message: "Property not found" });
-        res.json({ message: "Deleted successfully" });
-      } catch (err) {
-        res.status(500).json({ message: "Server Error" });
+        const id = req.params.id;
+        console.log("Deleting property with ID:", id);
+
+        // Validate MongoDB ObjectId
+        if (!ObjectId.isValid(id)) {
+          return res
+            .status(400)
+            .send({ message: "Invalid property ID format" });
+        }
+
+        const query = { _id: new ObjectId(id) };
+        const result = await propertyCollection.deleteOne(query);
+
+        if (result.deletedCount === 1) {
+          res.send({ success: true, message: "Property deleted successfully" });
+        } else {
+          res
+            .status(404)
+            .send({ success: false, message: "Property not found" });
+        }
+      } catch (error) {
+        console.error("❌ Error deleting property:", error);
+        res.status(500).send({
+          success: false,
+          message: "Failed to delete property",
+          error: error.message,
+        });
       }
     });
 
