@@ -29,8 +29,7 @@ async function run() {
     const propertyCollection = database.collection("properties");
     const ratingCollection = database.collection("ratings");
 
-    //Get All Properties
-    // GET all properties with search & sort
+    //Get All Properties with Search and Sort
     app.get("/properties", async (req, res) => {
       try {
         const { search, sort } = req.query;
@@ -68,14 +67,6 @@ async function run() {
           .json({ message: "Failed to add property", error: err.message });
       }
     });
-
-    //Get Single Property by ID
-    // app.get("/properties/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   const query = { _id: new ObjectId(id) };
-    //   const result = await propertyCollection.findOne(query);
-    //   res.send(result);
-    // });
 
     //Update Property
     app.put("/properties/:id", async (req, res) => {
@@ -126,7 +117,7 @@ async function run() {
             .send({ success: false, message: "Property not found" });
         }
       } catch (error) {
-        console.error("❌ Error deleting property:", error);
+        console.error(" Error deleting property:", error);
         res.status(500).send({
           success: false,
           message: "Failed to delete property",
@@ -159,7 +150,7 @@ async function run() {
       try {
         const reviews = await ratingCollection
           .find({ propertyId })
-          .sort({ date: -1 }) // নতুন review আগে দেখাবে
+          .sort({ date: -1 })
           .toArray();
         res.send(reviews);
       } catch (err) {
