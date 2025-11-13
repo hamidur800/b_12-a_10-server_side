@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { MongoClient, ServerApiVersion, ObjectId, Db } from "mongodb";
+import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 
 dotenv.config();
 const app = express();
@@ -13,7 +13,7 @@ app.use(express.json());
 
 // MongoDB Connection
 
-const uri = `mongodb+srv://Atlas_User_db:rulpqZXfDhwBzwWm@cluster0.tji7atp.mongodb.net/?appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.tji7atp.mongodb.net/?appName=Cluster0`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -99,7 +99,6 @@ async function run() {
         const id = req.params.id;
         console.log("Deleting property with ID:", id);
 
-        // Validate MongoDB ObjectId
         if (!ObjectId.isValid(id)) {
           return res
             .status(400)
@@ -144,42 +143,32 @@ async function run() {
       }
     });
 
-    // GET ratings for a property
-    app.get("/ratings", async (req, res) => {
-      const { propertyId } = req.query;
+    app.post("/properties", async (req, res) => {
       try {
-        const reviews = await ratingCollection
-          .find({ propertyId })
-          .sort({ date: -1 })
+        const newProperty = { ...req.body, createdAt: new Date() };
+        const result = await propertyCollection.insertOne(newProperty);
+        // return the actual property data
+        res.json({ ...newProperty, _id: result.insertedId });
+      } catch (err) {
+        console.error(err);
+        res
+          .status(500)
+          .json({ message: "Failed to add property", error: err.message });
+      }
+    });
+
+    app.get("/ratings/user", async (req, res) => {
+      const { email } = req.query;
+      if (!email) return res.status(400).send({ error: "Email required" });
+
+      try {
+        const ratings = await ratingCollection
+          .find({ reviewerEmail: email })
           .toArray();
-        res.send(reviews);
+        res.send(ratings);
       } catch (err) {
         console.error(err);
-        res.status(500).send({ error: "Failed to fetch reviews" });
-      }
-    });
-
-    // POST new review
-    app.post("/ratings", async (req, res) => {
-      try {
-        const newRating = { ...req.body, date: new Date().toISOString() };
-        const result = await ratingCollection.insertOne(newRating);
-        res.send(newRating);
-      } catch (err) {
-        console.error(err);
-        res.status(500).send({ error: "Failed to add rating" });
-      }
-    });
-
-    // POST a new rating
-    app.post("/ratings", async (req, res) => {
-      try {
-        const newRating = { ...req.body, createdAt: new Date() };
-        const result = await ratingCollection.insertOne(newRating);
-        res.send(result);
-      } catch (err) {
-        console.error("Error adding rating:", err);
-        res.status(500).send({ error: "Failed to add rating" });
+        res.status(500).send({ error: "Failed to fetch ratings" });
       }
     });
 
